@@ -51,6 +51,12 @@ dependencies {
     detektPlugins(libs.detekt.formatting)
 }
 
+// Explicitly set the Spring Boot application main class so bootJar doesn't
+// get confused by MonarchBootstrapMain (the interactive CLI entry point).
+springBoot {
+    mainClass.set("com.klaenerealestate.accountgateway.ApplicationKt")
+}
+
 // --- Bootstrap CLI task ---
 // One-time auth setup. Prompts for email/password/MFA, writes session JSON to disk.
 // NOT auto-run; the user invokes this when first setting up account-gateway.
@@ -60,7 +66,7 @@ tasks.register<JavaExec>("bootstrapMonarch") {
         "One-time interactive Monarch Money authentication. Prompts for email/password/MFA and " +
         "writes a session JSON file the running service loads. Re-run if the session expires."
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("com.klaenerealestate.accountgateway.MonarchBootstrapMainKt")
+    mainClass.set("com.klaenerealestate.accountgateway.MonarchBootstrapMain")
     standardInput = System.`in`
 }
 
@@ -104,6 +110,12 @@ kover {
             }
         }
     }
+}
+
+// JUnit Platform (JUnit 5) — Spring Boot test starter includes junit-jupiter but Gradle
+// defaults to the legacy JUnit 4 runner unless explicitly told to use the platform.
+tasks.withType<Test> {
+    useJUnitPlatform()
 }
 
 // `check` already runs test + detekt + spotlessCheck via Spring Boot conventions.

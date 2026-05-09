@@ -1,9 +1,12 @@
 package com.klaenerealestate.accountgateway
 
+import com.klaenerealestate.accountgateway.config.MonarchProperties
 import org.springframework.boot.autoconfigure.SpringBootApplication
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.runApplication
 
 @SpringBootApplication
+@EnableConfigurationProperties(MonarchProperties::class)
 class Application
 
 @Suppress("SpreadOperator")

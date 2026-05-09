@@ -49,6 +49,12 @@ performance:
 potential-bugs:
   active: true
 
+formatting:
+  active: true
+  MaximumLineLength:
+    maxLineLength: 140
+    excludes: ['**/test/**', '**/*Test.kt', '**/*IT.kt']
+
 style:
   active: true
   UtilityClassWithPublicConstructor:
@@ -64,6 +70,7 @@ style:
     active: true
   MaxLineLength:
     maxLineLength: 140
+    excludes: ['**/test/**', '**/*Test.kt', '**/*IT.kt']
   ReturnCount:
     max: 3
 
