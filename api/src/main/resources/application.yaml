@@ -1,0 +1,28 @@
+server:
+  port: ${API_PORT:8084}
+
+spring:
+  application:
+    name: account-gateway
+  jackson:
+    default-property-inclusion: NON_NULL
+
+monarch:
+  # JSON file holding the session token + email + lastVerifiedAt.
+  # Bootstrap CLI writes it; service loads it at startup + on-demand via /v1/auth/refresh.
+  session-path: ${MONARCH_SESSION_PATH:${user.home}/.config/account-gateway/.mm-session.json}
+  base-url: ${MONARCH_BASE_URL:https://api.monarch.com}
+  request-timeout-seconds: 30
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+
+logging:
+  level:
+    com.klaenerealestate.accountgateway: INFO

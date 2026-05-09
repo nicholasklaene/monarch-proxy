@@ -1,0 +1,75 @@
+# Detekt config — Track A starter set.
+# https://detekt.dev/docs/rules/
+
+build:
+  maxIssues: 0  # zero-warning policy
+  weights:
+    complexity: 2
+    LongParameterList: 1
+    style: 1
+    comments: 1
+
+complexity:
+  active: true
+  ComplexCondition:
+    threshold: 4
+  CyclomaticComplexMethod:
+    threshold: 7
+  LongMethod:
+    threshold: 30
+  LongParameterList:
+    functionThreshold: 6
+    constructorThreshold: 8
+  LargeClass:
+    threshold: 200
+  TooManyFunctions:
+    thresholdInClasses: 15
+    thresholdInObjects: 15
+
+empty-blocks:
+  active: true
+
+exceptions:
+  active: true
+
+naming:
+  active: true
+  ClassNaming:
+    classPattern: '[A-Z][a-zA-Z0-9]*'
+  FunctionNaming:
+    functionPattern: '[a-z][a-zA-Z0-9]*|`.*`'  # backtick names allowed for tests
+  PackageNaming:
+    packagePattern: '[a-z]+(\.[a-z][a-zA-Z0-9]*)*'
+
+performance:
+  active: true
+  SpreadOperator:
+    active: false  # Spring Boot's canonical runApplication<App>(*args) needs spread
+
+potential-bugs:
+  active: true
+
+style:
+  active: true
+  UtilityClassWithPublicConstructor:
+    active: false  # misfires on abstract test base classes
+  MagicNumber:
+    active: true
+    ignoreAnnotation: true
+    ignoreNumbers: ['-1', '0', '1', '2']
+    excludes: ['**/test/**', '**/*Test.kt', '**/*IT.kt']
+  NewLineAtEndOfFile:
+    active: true
+  WildcardImport:
+    active: true
+  MaxLineLength:
+    maxLineLength: 140
+  ReturnCount:
+    max: 3
+
+comments:
+  active: true
+  UndocumentedPublicClass:
+    active: false  # too noisy for Track A; promote later
+  UndocumentedPublicFunction:
+    active: false  # too noisy for Track A; promote later

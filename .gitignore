@@ -1,0 +1,40 @@
+# Gradle
+.gradle/
+build/
+**/build/
+!**/src/**/build/
+!gradle/wrapper/
+gradle/wrapper/gradle-wrapper.jar.lock
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# OS
+.DS_Store
+*.bak
+*.swp
+
+# Monarch session — the bootstrap CLI writes this. NEVER commit.
+.mm-session.json
+**/.mm-session.json
+
+# Env files
+.env
+.env.local
+*.env
+!.env.example
+
+# Build outputs
+out/
+target/
+*.log
+
+# Kover
+**/kover/
+
+# Detekt
+**/reports/

@@ -1,0 +1,50 @@
+# Single source of truth for plugin + dep versions.
+# account-gateway is a stateless pass-through — no JPA, no Flyway, no Kafka.
+
+[versions]
+kotlin            = "2.0.10"
+java              = "21"
+
+spring-boot       = "3.5.0"
+spring-dep-mgmt   = "1.1.7"
+
+# Testing
+mockk             = "1.13.14"
+wiremock          = "3.10.0"
+assertj           = "3.26.3"
+archunit          = "1.3.0"
+
+# Code quality
+detekt            = "1.23.7"
+ktlint            = "1.5.0"
+spotless          = "7.0.0"
+kover             = "0.9.1"
+
+# Logging
+logstash-logback  = "8.0"
+
+[libraries]
+spring-boot-starter-web        = { group = "org.springframework.boot", name = "spring-boot-starter-web" }
+spring-boot-starter-actuator   = { group = "org.springframework.boot", name = "spring-boot-starter-actuator" }
+spring-boot-starter-validation = { group = "org.springframework.boot", name = "spring-boot-starter-validation" }
+spring-boot-starter-test       = { group = "org.springframework.boot", name = "spring-boot-starter-test" }
+
+jackson-module-kotlin = { group = "com.fasterxml.jackson.module", name = "jackson-module-kotlin" }
+kotlin-reflect        = { group = "org.jetbrains.kotlin", name = "kotlin-reflect" }
+
+wiremock-standalone = { group = "org.wiremock", name = "wiremock-standalone", version.ref = "wiremock" }
+assertj-core        = { group = "org.assertj", name = "assertj-core", version.ref = "assertj" }
+archunit-junit5     = { group = "com.tngtech.archunit", name = "archunit-junit5", version.ref = "archunit" }
+
+logstash-logback-encoder = { group = "net.logstash.logback", name = "logstash-logback-encoder", version.ref = "logstash-logback" }
+
+detekt-formatting = { group = "io.gitlab.arturbosch.detekt", name = "detekt-formatting", version.ref = "detekt" }
+
+[plugins]
+kotlin-jvm        = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-spring     = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin" }
+spring-boot       = { id = "org.springframework.boot", version.ref = "spring-boot" }
+spring-dep-mgmt   = { id = "io.spring.dependency-management", version.ref = "spring-dep-mgmt" }
+detekt            = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+spotless          = { id = "com.diffplug.spotless", version.ref = "spotless" }
+kover             = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
