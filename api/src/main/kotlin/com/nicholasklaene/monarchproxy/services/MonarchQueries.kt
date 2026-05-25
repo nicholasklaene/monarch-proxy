@@ -250,4 +250,109 @@ mutation Common_ForceRefreshAccountsMutation(${'$'}input: ForceRefreshAccountsIn
   }
 }
 """ + MonarchFragments.PAYLOAD_ERROR_FIELDS
+
+    /**
+     * GET_AGGREGATE_SNAPSHOTS — fetches net-worth-over-time across all accounts.
+     *
+     * Upstream: get_aggregate_snapshots, operation: GetAggregateSnapshots
+     * Ported on 2026-05-25
+     */
+    const val GET_AGGREGATE_SNAPSHOTS = """
+query GetAggregateSnapshots(${'$'}filters: AggregateSnapshotFilters) {
+  aggregateSnapshots(filters: ${'$'}filters) {
+    date
+    balance
+    __typename
+  }
+}"""
+
+    /**
+     * GET_RECENT_ACCOUNT_BALANCES — recent balance fluctuations per account.
+     *
+     * Upstream: get_recent_account_balances, operation: GetAccountRecentBalances
+     * Ported on 2026-05-25
+     */
+    const val GET_RECENT_ACCOUNT_BALANCES = """
+query GetAccountRecentBalances(${'$'}startDate: Date!) {
+  accounts {
+    id
+    recentBalances(startDate: ${'$'}startDate)
+    __typename
+  }
+}"""
+
+    /**
+     * GET_SNAPSHOTS_BY_ACCOUNT_TYPE — balance history grouped by account type + reference list.
+     *
+     * Upstream: get_account_snapshots_by_type, operation: GetSnapshotsByAccountType
+     * Ported on 2026-05-25
+     */
+    const val GET_SNAPSHOTS_BY_ACCOUNT_TYPE = """
+query GetSnapshotsByAccountType(${'$'}startDate: Date!, ${'$'}timeframe: Timeframe!) {
+  snapshotsByAccountType(startDate: ${'$'}startDate, timeframe: ${'$'}timeframe) {
+    accountType
+    month
+    balance
+    __typename
+  }
+  accountTypes {
+    name
+    group
+    __typename
+  }
+}"""
+
+    /**
+     * GET_HOLDINGS — investment positions for a single account (relay-paginated).
+     *
+     * Upstream: get_account_holdings, operation: Web_GetHoldings
+     * Ported on 2026-05-25
+     */
+    const val GET_HOLDINGS = """
+query Web_GetHoldings(${'$'}input: PortfolioInput) {
+  portfolio(input: ${'$'}input) {
+    aggregateHoldings {
+      edges {
+        node {
+          id
+          quantity
+          basis
+          totalValue
+          securityPriceChangeDollars
+          securityPriceChangePercent
+          lastSyncedAt
+          holdings {
+            id
+            type
+            typeDisplay
+            name
+            ticker
+            closingPrice
+            isManual
+            closingPriceUpdatedAt
+            __typename
+          }
+          security {
+            id
+            name
+            type
+            ticker
+            typeDisplay
+            currentPrice
+            currentPriceUpdatedAt
+            closingPrice
+            closingPriceUpdatedAt
+            oneDayChangePercent
+            oneDayChangeDollars
+            __typename
+          }
+          __typename
+        }
+        __typename
+      }
+      __typename
+    }
+    __typename
+  }
+}"""
 }

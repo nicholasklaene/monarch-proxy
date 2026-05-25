@@ -1,5 +1,5 @@
 ---
-last_human_verified: 2026-05-17
+last_human_verified: 2026-05-25
 freshness_horizon: 14d
 ---
 
@@ -72,9 +72,13 @@ curl -X POST http://localhost:9084/v1/auth/refresh
 |---|---|
 | `GET /healthz` | 200 always. `authenticated: bool` reflects session presence. |
 | `GET /v1/accounts` | All linked accounts + balances. 503 if no session. |
-| `GET /v1/account/{id}/history` | Daily balance history. |
+| `GET /v1/account/{id}/history` | Per-account daily balance snapshots. |
+| `GET /v1/account/{id}/holdings` | Per-account investment positions (Web_GetHoldings). |
 | `GET /v1/transactions` | Params: `start`, `end`, `limit`, `offset`, `accountId`. |
 | `GET /v1/cashflow` | Params: `start`, `end`. |
+| `GET /v1/networth` | Aggregate net-worth-over-time. Params: `start`, `end`, `accountType`. |
+| `GET /v1/networth/recent` | Per-account recent balance fluctuations. Params: `start`. |
+| `GET /v1/networth/by-type` | Balance history grouped by account type. Params: `start`, `timeframe`. |
 | `GET /v1/categories` | All transaction categories. |
 | `GET /v1/tags` | All tags + colors + usage counts. |
 | `POST /v1/refresh` | Pokes Monarch to re-poll Plaid. Returns 202. |
@@ -86,6 +90,16 @@ curl -X POST http://localhost:9084/v1/auth/refresh
 The primary consumer is `klaene-real-estate/account-gateway` (port 8084). It calls this
 service over HTTP (default `http://localhost:9084`; in docker via `host.docker.internal:9084`).
 A future MCP wrapper / CLI wrapper could also consume directly.
+
+## 2026-05-25 — networth + holdings endpoints + monarch CLI
+
+Added 4 new endpoints from upstream `monarchmoney`: `aggregateSnapshots` (net worth over
+time), `recentAccountBalances`, `snapshotsByAccountType`, and `Web_GetHoldings`. All four
+verified against live Monarch (115 daily snapshots from 2026-01-31, 30 accounts, 11 account
+types, 23 holdings on tested brokerage). Pure pass-through; no DTO translation.
+
+Also shipped `cli/monarch` — bash + curl + jq wrapper, symlinked to `~/bin/monarch`.
+Subcommands cover all 13 endpoints. `--raw` flag for piping. Bash 3.2 compatible.
 
 ## Next agent: what to do
 

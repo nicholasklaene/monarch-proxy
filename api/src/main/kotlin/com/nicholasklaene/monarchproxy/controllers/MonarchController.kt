@@ -182,6 +182,86 @@ class MonarchController(
     }
 
     // -----------------------------------------------------------------------------------------
+    // Net-worth (aggregate balance history) endpoints
+    // -----------------------------------------------------------------------------------------
+
+    @GetMapping("/v1/networth")
+    fun getNetworth(
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) start: LocalDate?,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) end: LocalDate?,
+        @RequestParam(required = false) accountType: String?,
+    ): ResponseEntity<Map<String, JsonNode>> {
+        requireSession()
+        val resolvedStart = start ?: LocalDate.now().minusDays(DEFAULT_DAYS_BACK)
+        val resolvedEnd = end ?: LocalDate.now()
+        val filters =
+            buildMap<String, Any?> {
+                put("startDate", resolvedStart.toString())
+                put("endDate", resolvedEnd.toString())
+                if (accountType != null) put("accountType", accountType)
+            }
+        val variables = mapOf("filters" to filters)
+        val data =
+            monarchClient.executeGraphQL("GetAggregateSnapshots", MonarchQueries.GET_AGGREGATE_SNAPSHOTS, variables)
+        return ResponseEntity.ok(mapOf("data" to data))
+    }
+
+    @GetMapping("/v1/networth/recent")
+    fun getNetworthRecent(
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) start: LocalDate?,
+    ): ResponseEntity<Map<String, JsonNode>> {
+        requireSession()
+        val resolvedStart = start ?: LocalDate.now().minusDays(DEFAULT_DAYS_BACK)
+        val variables = mapOf<String, Any?>("startDate" to resolvedStart.toString())
+        val data =
+            monarchClient.executeGraphQL(
+                "GetAccountRecentBalances",
+                MonarchQueries.GET_RECENT_ACCOUNT_BALANCES,
+                variables,
+            )
+        return ResponseEntity.ok(mapOf("data" to data))
+    }
+
+    @GetMapping("/v1/networth/by-type")
+    fun getNetworthByType(
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) start: LocalDate?,
+        @RequestParam(required = false, defaultValue = "month") timeframe: String,
+    ): ResponseEntity<Map<String, JsonNode>> {
+        requireSession()
+        val resolvedStart = start ?: LocalDate.now().minusDays(DEFAULT_DAYS_BACK)
+        val variables =
+            mapOf<String, Any?>(
+                "startDate" to resolvedStart.toString(),
+                "timeframe" to timeframe,
+            )
+        val data =
+            monarchClient.executeGraphQL(
+                "GetSnapshotsByAccountType",
+                MonarchQueries.GET_SNAPSHOTS_BY_ACCOUNT_TYPE,
+                variables,
+            )
+        return ResponseEntity.ok(mapOf("data" to data))
+    }
+
+    @GetMapping("/v1/account/{id}/holdings")
+    fun getAccountHoldings(
+        @PathVariable id: String,
+    ): ResponseEntity<Map<String, JsonNode>> {
+        requireSession()
+        val today = LocalDate.now().toString()
+        val input =
+            mapOf<String, Any?>(
+                "accountIds" to listOf(id),
+                "startDate" to today,
+                "endDate" to today,
+                "includeHiddenHoldings" to true,
+            )
+        val variables = mapOf<String, Any?>("input" to input)
+        val data = monarchClient.executeGraphQL("Web_GetHoldings", MonarchQueries.GET_HOLDINGS, variables)
+        return ResponseEntity.ok(mapOf("data" to data))
+    }
+
+    // -----------------------------------------------------------------------------------------
     // Internal helpers
     // -----------------------------------------------------------------------------------------
 

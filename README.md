@@ -25,8 +25,12 @@ Stateless Kotlin/Spring Boot service that holds a session token in a local JSON 
 | `GET` | `/healthz` | none — returns `{authenticated, lastVerifiedAt}` |
 | `GET` | `/v1/accounts` | `get_accounts` |
 | `GET` | `/v1/account/{id}/history` | `get_account_history` |
+| `GET` | `/v1/account/{id}/holdings` | `get_account_holdings` (Web_GetHoldings) |
 | `GET` | `/v1/transactions?start&end&limit&offset&accountId` | `get_transactions` |
 | `GET` | `/v1/cashflow?start&end` | `get_cashflow_summary` |
+| `GET` | `/v1/networth?start&end&accountType` | `get_aggregate_snapshots` (net worth over time) |
+| `GET` | `/v1/networth/recent?start` | `get_recent_account_balances` |
+| `GET` | `/v1/networth/by-type?start&timeframe` | `get_account_snapshots_by_type` |
 | `GET` | `/v1/categories` | `get_transaction_categories` |
 | `GET` | `/v1/tags` | `get_transaction_tags` |
 | `POST` | `/v1/refresh` | `request_accounts_refresh` (mutation) |
@@ -34,6 +38,20 @@ Stateless Kotlin/Spring Boot service that holds a session token in a local JSON 
 | `POST` | `/v1/auth/refresh` | none — reload session JSON from disk |
 
 Without a session loaded, the data endpoints return `503` with `{"code": "session_missing"}`.
+
+## CLI
+
+A thin bash wrapper lives at `cli/monarch`. Install:
+
+```bash
+ln -sf ~/Desktop/monarch-proxy/cli/monarch ~/bin/monarch
+monarch health
+monarch accounts
+monarch networth --start 2026-01-01
+monarch networth by-type --timeframe month
+```
+
+See `cli/README.md` for full subcommand reference.
 
 ## Setup
 

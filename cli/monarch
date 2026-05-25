@@ -1,0 +1,176 @@
+#!/usr/bin/env bash
+# monarch — thin CLI over monarch-proxy HTTP service.
+# Default gateway: http://localhost:9084 (override with MONARCH_GATEWAY env var).
+# Bash 3.2 compatible (macOS default).
+set -euo pipefail
+
+GATEWAY="${MONARCH_GATEWAY:-http://localhost:9084}"
+
+# Strip --raw flag (anywhere); set RAW=1 if present.
+RAW=0
+args=()
+for a in "$@"; do
+  if [[ "$a" == "--raw" ]]; then RAW=1; else args+=("$a"); fi
+done
+set -- "${args[@]+"${args[@]}"}"
+
+usage() {
+  cat <<'USAGE'
+Usage: monarch <command> [--raw] [args...]
+
+Commands:
+  health                                          Service + auth status
+  auth [refresh]                                  Auth status (or refresh from disk)
+  accounts                                        Linked accounts
+  history <account-id>                            Per-account daily balance history
+  holdings <account-id>                           Per-account investment positions
+  transactions [--start --end --account-id --limit]
+                                                  Transactions with optional filters
+  cashflow [--start --end]                        Income/expense/savings aggregate
+  networth [--start --end --account-type]         Aggregate balance history (all accounts)
+  networth recent [--start]                       Recent per-account balance fluctuations
+  networth by-type [--start --timeframe]          Balance history grouped by account type
+  categories                                      Transaction categories
+  tags                                            Transaction tags
+  refresh                                         Trigger Monarch to re-poll Plaid
+
+Global flag:
+  --raw    Print raw JSON (skip jq formatting)
+
+Env:
+  MONARCH_GATEWAY (default: http://localhost:9084)
+USAGE
+}
+
+# call <method> <path> — emits raw JSON; errors exit 1.
+call() {
+  local method="$1" path="$2"
+  local resp http body
+  resp=$(curl -sS -w "\n%{http_code}" -X "$method" "$GATEWAY$path") || {
+    echo "monarch: request failed against $GATEWAY$path" >&2
+    exit 1
+  }
+  http=$(echo "$resp" | tail -n1)
+  body=$(echo "$resp" | sed '$d')
+  if [[ "$http" -lt 200 || "$http" -ge 300 ]]; then
+    echo "monarch: HTTP $http from $GATEWAY$path" >&2
+    echo "$body" >&2
+    exit 1
+  fi
+  printf '%s' "$body"
+}
+
+# emit <jq-filter> — pipes stdin to jq unless RAW=1.
+emit() {
+  if [[ "$RAW" == "1" ]]; then cat; else jq -r "$@"; fi
+}
+
+# Build a query string from local START/END/LIMIT/ACCOUNT_ID/TIMEFRAME/ACCOUNT_TYPE vars.
+build_query() {
+  local q=""
+  [[ -n "${START:-}" ]] && q+="&start=$START"
+  [[ -n "${END:-}" ]] && q+="&end=$END"
+  [[ -n "${LIMIT:-}" ]] && q+="&limit=$LIMIT"
+  [[ -n "${ACCOUNT_ID:-}" ]] && q+="&accountId=$ACCOUNT_ID"
+  [[ -n "${TIMEFRAME:-}" ]] && q+="&timeframe=$TIMEFRAME"
+  [[ -n "${ACCOUNT_TYPE:-}" ]] && q+="&accountType=$ACCOUNT_TYPE"
+  echo "${q:+?${q:1}}"
+}
+
+# parse_flags - sets START/END/LIMIT/etc from "$@"
+parse_flags() {
+  START=""; END=""; LIMIT=""; ACCOUNT_ID=""; TIMEFRAME=""; ACCOUNT_TYPE=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --start) START="$2"; shift 2 ;;
+      --end) END="$2"; shift 2 ;;
+      --limit) LIMIT="$2"; shift 2 ;;
+      --account-id) ACCOUNT_ID="$2"; shift 2 ;;
+      --timeframe) TIMEFRAME="$2"; shift 2 ;;
+      --account-type) ACCOUNT_TYPE="$2"; shift 2 ;;
+      *) echo "monarch: unknown flag: $1" >&2; exit 2 ;;
+    esac
+  done
+}
+
+[[ $# -eq 0 ]] && { usage; exit 0; }
+
+case "$1" in
+  -h|--help|help) usage ;;
+
+  health)
+    call GET /healthz | emit '"\(.status)  authenticated=\(.authenticated)  lastVerifiedAt=\(.lastVerifiedAt // "—")"'
+    ;;
+
+  auth)
+    if [[ "${2:-}" == "refresh" ]]; then
+      call POST /v1/auth/refresh | emit '.'
+    else
+      call GET /v1/auth/status | emit '"authenticated=\(.authenticated)  email=\(.email // "—")  lastVerifiedAt=\(.lastVerifiedAt // "—")"'
+    fi
+    ;;
+
+  accounts)
+    call GET /v1/accounts | emit '.data.accounts[] | [.displayName, (.currentBalance|tostring), .institution.name, .type.display] | @tsv' | column -t -s $'\t'
+    ;;
+
+  history)
+    [[ -z "${2:-}" ]] && { echo "monarch history <account-id>" >&2; exit 2; }
+    call GET "/v1/account/$2/history" | emit '.data.snapshots | sort_by(.date) | "\(length) snapshots  first=\(.[0].date)  last=\(.[-1].date)  latest_balance=\(.[-1].signedBalance)"'
+    ;;
+
+  holdings)
+    [[ -z "${2:-}" ]] && { echo "monarch holdings <account-id>" >&2; exit 2; }
+    call GET "/v1/account/$2/holdings" | emit '.data.portfolio.aggregateHoldings.edges[] | .node | [.security.ticker, (.quantity|tostring), (.totalValue|tostring), (.basis|tostring)] | @tsv' | column -t -s $'\t'
+    ;;
+
+  transactions)
+    shift
+    parse_flags "$@"
+    call GET "/v1/transactions$(build_query)" | emit '.data.allTransactions.results[] | [.date, .merchant.name, (.amount|tostring), .category.name] | @tsv' | column -t -s $'\t'
+    ;;
+
+  cashflow)
+    shift
+    parse_flags "$@"
+    call GET "/v1/cashflow$(build_query)" | emit '.data.summary.summary | "income=\(.sumIncome)  expense=\(.sumExpense)  savings=\(.savings)  savingsRate=\(.savingsRate)"'
+    ;;
+
+  networth)
+    case "${2:-}" in
+      recent)
+        shift 2
+        parse_flags "$@"
+        call GET "/v1/networth/recent$(build_query)" | emit '.data.accounts[] | "\(.id)  recent=\(.recentBalances)"'
+        ;;
+      by-type)
+        shift 2
+        parse_flags "$@"
+        call GET "/v1/networth/by-type$(build_query)" | emit '.data.snapshotsByAccountType[] | [.month, .accountType, (.balance|tostring)] | @tsv' | column -t -s $'\t'
+        ;;
+      *)
+        shift
+        parse_flags "$@"
+        call GET "/v1/networth$(build_query)" | emit '.data.aggregateSnapshots as $s | "\($s | length) snapshots  first=\($s[0].date // "—")  last=\($s[-1].date // "—")  latest_balance=\($s[-1].balance // "—")"'
+        ;;
+    esac
+    ;;
+
+  categories)
+    call GET /v1/categories | emit '.data.categories[] | [.name, .group, (.isSystemCategory|tostring)] | @tsv' | column -t -s $'\t'
+    ;;
+
+  tags)
+    call GET /v1/tags | emit '.data.householdTransactionTags[] | [.name, (.transactionCount|tostring), .color] | @tsv' | column -t -s $'\t'
+    ;;
+
+  refresh)
+    call POST /v1/refresh > /dev/null && echo "refresh requested"
+    ;;
+
+  *)
+    echo "monarch: unknown command: $1" >&2
+    usage >&2
+    exit 2
+    ;;
+esac

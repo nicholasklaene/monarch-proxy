@@ -245,4 +245,116 @@ class MonarchControllerDataTest {
             .andExpect(jsonPath("$.code").value("monarch_request_failed"))
             .andExpect(jsonPath("$.details.upstream_status").value(500))
     }
+
+    // -----------------------------------------------------------------------------------------
+    // GET /v1/networth (aggregate snapshots)
+    // -----------------------------------------------------------------------------------------
+
+    @Test
+    fun `networth returns 200 with data wrapper`() {
+        `when`(monarchSessionService.current()).thenReturn(MonarchControllerTest.FAKE_SESSION)
+        `when`(
+            monarchClient.executeGraphQL(
+                MonarchControllerTest.anyStr(),
+                MonarchControllerTest.anyStr(),
+                MonarchControllerTest.anyVariables(),
+            ),
+        ).thenReturn(MonarchControllerTest.dataNode("aggregateSnapshots"))
+
+        mvc
+            .perform(
+                get("/v1/networth")
+                    .param("start", "2026-01-01")
+                    .param("end", "2026-05-01")
+                    .accept(MediaType.APPLICATION_JSON),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.aggregateSnapshots").value("ok"))
+    }
+
+    @Test
+    fun `networth uses default date range when params omitted`() {
+        `when`(monarchSessionService.current()).thenReturn(MonarchControllerTest.FAKE_SESSION)
+        `when`(
+            monarchClient.executeGraphQL(
+                MonarchControllerTest.anyStr(),
+                MonarchControllerTest.anyStr(),
+                MonarchControllerTest.anyVariables(),
+            ),
+        ).thenReturn(MonarchControllerTest.dataNode("aggregateSnapshots"))
+
+        mvc
+            .perform(get("/v1/networth").accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.aggregateSnapshots").value("ok"))
+    }
+
+    // -----------------------------------------------------------------------------------------
+    // GET /v1/networth/recent
+    // -----------------------------------------------------------------------------------------
+
+    @Test
+    fun `networth recent returns 200`() {
+        `when`(monarchSessionService.current()).thenReturn(MonarchControllerTest.FAKE_SESSION)
+        `when`(
+            monarchClient.executeGraphQL(
+                MonarchControllerTest.anyStr(),
+                MonarchControllerTest.anyStr(),
+                MonarchControllerTest.anyVariables(),
+            ),
+        ).thenReturn(MonarchControllerTest.dataNode("accounts"))
+
+        mvc
+            .perform(
+                get("/v1/networth/recent")
+                    .param("start", "2026-04-25")
+                    .accept(MediaType.APPLICATION_JSON),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.accounts").value("ok"))
+    }
+
+    // -----------------------------------------------------------------------------------------
+    // GET /v1/networth/by-type
+    // -----------------------------------------------------------------------------------------
+
+    @Test
+    fun `networth by-type returns 200 with timeframe`() {
+        `when`(monarchSessionService.current()).thenReturn(MonarchControllerTest.FAKE_SESSION)
+        `when`(
+            monarchClient.executeGraphQL(
+                MonarchControllerTest.anyStr(),
+                MonarchControllerTest.anyStr(),
+                MonarchControllerTest.anyVariables(),
+            ),
+        ).thenReturn(MonarchControllerTest.dataNode("snapshotsByAccountType"))
+
+        mvc
+            .perform(
+                get("/v1/networth/by-type")
+                    .param("start", "2026-01-01")
+                    .param("timeframe", "month")
+                    .accept(MediaType.APPLICATION_JSON),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.snapshotsByAccountType").value("ok"))
+    }
+
+    // -----------------------------------------------------------------------------------------
+    // GET /v1/account/{id}/holdings
+    // -----------------------------------------------------------------------------------------
+
+    @Test
+    fun `account holdings returns 200 with data wrapper`() {
+        `when`(monarchSessionService.current()).thenReturn(MonarchControllerTest.FAKE_SESSION)
+        `when`(
+            monarchClient.executeGraphQL(
+                MonarchControllerTest.anyStr(),
+                MonarchControllerTest.anyStr(),
+                MonarchControllerTest.anyVariables(),
+            ),
+        ).thenReturn(MonarchControllerTest.dataNode("portfolio"))
+
+        mvc
+            .perform(get("/v1/account/acc-123/holdings").accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.portfolio").value("ok"))
+    }
 }
